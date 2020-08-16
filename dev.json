@@ -1,0 +1,5 @@
+{
+  "LambdaFunction": {
+    "EXAMPLE_S3_BUCKET": "medium-lambda-dev"
+  }
+}

@@ -1,24 +1,31 @@
-AWSTemplateFormatVersion : '2010-09-09'
+AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: A lambda to upload to S3
 Parameters:
   Environment:
     Type: String
-    AllowedValues: ['dev', 'staging', 'prod']
+    AllowedValues:
+    - dev
+    - staging
+    - prod
   LambdaName:
     Type: String
-    Default: database-updater
+    Default: medium-example
 Resources:
   LambdaFunction:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: !Join ['-', [!Ref LambdaName, !Ref Environment ]]
-      Handler: main
-      Runtime: go1.x
+      FunctionName:
+        Fn::Join:
+        - '-'
+        - - Ref: LambdaName
+          - Ref: Environment              
+      Handler: main.lambda_handler
+      Runtime: python3.7
       Environment:
         Variables:
-          EXAMPLE_S3_BUCKET: !Ref ExampleS3Bucket
-      CodeUri: 
+          EXAMPLE_S3_BUCKET:
+            Ref: ExampleS3Bucket
       MemorySize: 256
       Timeout: 600 
       Events:
@@ -29,14 +36,16 @@ Resources:
       Tracing: Active
       Policies:
         - Statement:
-            - Action:
-                - s3:PutObject
-              Effect: Allow
-              Resource:
-                - !Join ['/', [!GetAtt ExampleS3Bucket.Arn, "*"]]
-      Tags:
-        env: !Join ['-', ['medium-example', !Ref Environment ]]
-        datadog: "true"
+          - Action:
+            - s3:PutObject
+            Effect: Allow
+            Resource:
+              Fn::Join:
+              - /
+              - - Fn::GetAtt:
+                  - ExampleS3Bucket
+                  - Arn
+                - '*'
   LambdaFunctionLogGroup:
     Type: AWS::Logs::LogGroup
     DependsOn: LambdaFunction
@@ -46,33 +55,20 @@ Resources:
         - ''
         - - /aws/lambda/
           - Ref: LambdaName
-          - "-"
-          - !Ref Environment
+          - '-'
+          - Ref: Environment
       RetentionInDays: 14
   ExampleS3Bucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Join ['-', ['medium-example', !Ref Environment ]]
-  ExampleS3BucketPolicy:
-    Type: AWS::S3::BucketPolicy
-    Properties:
-      Bucket:
-        Ref: "ExampleS3Bucket"
-      PolicyDocument:
-        Statement:
-          - 
-            Action:
-              - "s3:GetObject"
-            Effect: "Allow"
-            Resource:
-              Fn::Join:
-                - ""
-                - 
-                  - "arn:aws:s3:::"
-                  - 
-                    Ref: "ExampleS3Bucket"
-                  - "/*"
-            Principal: "*"
+      BucketName:
+        Fn::Join:
+        - '-'
+        - - medium-example
+          - Ref: Environment
 Outputs:
   LambdaArn:
-    Value: !GetAtt LambdaFunction.Arn
+    Value:
+      Fn::GetAtt:
+      - LambdaFunction
+      - Arn

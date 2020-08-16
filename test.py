@@ -1,5 +1,6 @@
 import mock
 import os
+import pytest
 
 import responses
 import requests
@@ -14,12 +15,30 @@ with mock.patch.dict(os.environ, {"EXAMPLE_S3_BUCKET": "test-bucket"} ),\
 # Apply responses decorator
 @responses.activate
 def test_update_file():
-    url = 'http://data.nba.net/10s/prod/v1/allstar/2016/AS_roster.json'
-    responses.add(responses.GET, url,
-            json={'sportsContent': {'roster': [{'coaches': {'coach': [{'fullName': 'Brad Stevens'}]}}]}}, status=200)
+    test_cases = [
+        {
+            "name": "works properly",
+            "url": "http://data.nba.net/10s/prod/v1/allstar/2016/AS_roster.json",
+            "status_code": 200,
+            "output": {'sportsContent': {'roster': [{'coaches': {'coach': [{'fullName': 'Brad Stevens'}]}}]}}
+        },
+        {
+            "name": "error!",
+            "url": "http://bad.url.com",
+            "status_code": 404,
+            "output": {'error': 'not found'}
+        }
+    ]
 
-    result = update_file()
+    for test in test_cases:
+        responses.add(responses.GET, test['url'],
+            json=test['output'], status=test['status_code'])        
 
-    assert result.json()['sportsContent']['roster'][0]['coaches']['coach'][0]['fullName'] == "Brad Stevens"
-    assert result.status_code == 200
-    assert result.url == url
+        if test['name'] == 'error!':
+            with pytest.raises(Exception):
+                result = update_file(test['url'])
+        else:
+            result = update_file(test['url'])
+            assert result.json() == test['output']
+            assert result.status_code == test['status_code']
+            assert result.url == test['url']
