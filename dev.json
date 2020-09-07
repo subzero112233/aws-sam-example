@@ -1,5 +1,6 @@
 {
   "LambdaFunction": {
-    "EXAMPLE_S3_BUCKET": "medium-lambda-dev"
+    "EXAMPLE_S3_BUCKET": "medium-lambda-dev",
+    "EXAMPLE_DYNAMODB_TABLE": "SanAntonioSpurs-medium-example"
   }
 }
