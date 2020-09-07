@@ -8,11 +8,8 @@ function cleanup {
 }
 
 ENV=$1
-
-# Dynamically retrieve the script name and function name from the template
 SCRIPT_NAME=$(yq -r .Resources.LambdaFunction.Properties.Handler template.yaml | awk -F'.' '{print $1}')
 FUNCTION_NAME=$(yq -r .Parameters.LambdaName.Default template.yaml) 
-
 STACK_NAME=$FUNCTION_NAME-$ENV
 
 
@@ -35,7 +32,7 @@ esac
 
 
 # Syntax check
-python -m py_compile $SCRIPT_NAME.py
+python3.7 -m py_compile $SCRIPT_NAME.py
 
 # Unit tests
 pytest --cov-report term-missing --cov=. test.py -rxXs
@@ -50,18 +47,24 @@ trap cleanup EXIT
 # Build
 sam build --build-dir build --use-container  
 
-# Integration tests
-sam local invoke --template build/template.yaml --env-vars ${ENV}.json --event ${FUNCTION_NAME}-event.json > output
-cat output
-status=$(cat output | jq .statusCode)
-if [[ -z "$status" ]]
+# Skip integration tests on the first run because the resources are not created yet
+exists=$(aws cloudformation describe-stacks --stack-name $STACK_NAME | jq .[][].StackName)
+if [[ ! -z "$exists" ]]
 then
-    echo "integration test failed: lambda did not finish properly"
-    exit 1
-elif [[ "$status" != 200 ]]
-then
-    echo "integration test failed with the following error code: $status"
-    exit 1
+        sam local invoke --template build/template.yaml --env-vars ${ENV}.json --event ${FUNCTION_NAME}-event.json > output
+        cat output
+        status=$(cat output | jq .statusCode)
+        if [[ -z "$status" ]]
+        then
+            echo "integration test failed: lambda did not finish properly"
+            exit 1
+        elif [[ "$status" != 200 ]]
+        then
+            echo "integration test failed with the following error code: $status"
+            exit 1
+        fi
+else
+        echo "skipping integration test on the first run. The error is ok."
 fi
 
 # Package

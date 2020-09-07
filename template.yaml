@@ -26,6 +26,8 @@ Resources:
         Variables:
           EXAMPLE_S3_BUCKET:
             Ref: ExampleS3Bucket
+          EXAMPLE_DYNAMODB_TABLE:
+            Ref: ExampleDynamoDBTable
       MemorySize: 256
       Timeout: 600 
       Events:
@@ -46,6 +48,12 @@ Resources:
                   - ExampleS3Bucket
                   - Arn
                 - '*'
+        - Statement:
+            - Action:
+                - dynamodb:PutItem
+              Effect: Allow
+              Resource:
+                - !GetAtt ExampleDynamoDBTable.Arn                  
   LambdaFunctionLogGroup:
     Type: AWS::Logs::LogGroup
     DependsOn: LambdaFunction
@@ -64,8 +72,27 @@ Resources:
       BucketName:
         Fn::Join:
         - '-'
-        - - medium-example
+        - - san-antonio-spurs-medium-example
           - Ref: Environment
+  ExampleDynamoDBTable:
+      Type: 'AWS::DynamoDB::Table'
+      Properties:
+        AttributeDefinitions:
+          - AttributeName: PlayerName
+            AttributeType: S
+          - AttributeName: JerseyNumber
+            AttributeType: N
+        KeySchema:
+          - AttributeName: PlayerName
+            KeyType: HASH
+          - AttributeName: JerseyNumber
+            KeyType: RANGE
+        TableName: 
+          Fn::Join:
+          - '-'
+          - - san-antonio-spurs-medium-example
+            - Ref: Environment
+        BillingMode: PAY_PER_REQUEST            
 Outputs:
   LambdaArn:
     Value:
