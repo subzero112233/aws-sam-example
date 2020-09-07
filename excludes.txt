@@ -3,6 +3,7 @@ dist/
 build/
 build.sh
 medium-example-event.json
+2019-20.NBA.Roster.json
 template.yaml
 excludes.txt
 output
