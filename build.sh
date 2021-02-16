@@ -32,7 +32,7 @@ esac
 
 
 # Syntax check
-python3.7 -m py_compile $SCRIPT_NAME.py
+python3 -m py_compile $SCRIPT_NAME.py
 
 # Unit tests
 pytest --cov-report term-missing --cov=. test.py -rxXs
